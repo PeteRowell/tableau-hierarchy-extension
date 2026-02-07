@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hierarchy Drill Down</title>
+    <title>Hierarchy Drill Down - Viz Extension</title>
     
     <!-- Tableau Extensions API -->
     <script src="https://cdn.online.tableau.com/extensions/1.10.0/tableau.extensions.1.10.0.min.js"></script>
@@ -18,27 +18,28 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            padding: 15px;
-            background: #f8f9fa;
-        }
-        
-        #container {
-            max-width: 100%;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow: hidden;
         }
         
+        #container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+        
         #breadcrumb {
-            padding: 12px 15px;
-            background: #f1f3f5;
-            border-bottom: 1px solid #dee2e6;
-            font-size: 14px;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            font-size: 13px;
             display: flex;
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
         
         .breadcrumb-item {
@@ -49,19 +50,26 @@
         }
         
         .breadcrumb-link {
-            color: #007bff;
+            color: #1f77b4;
             cursor: pointer;
             text-decoration: none;
             transition: color 0.2s;
+            font-weight: 500;
         }
         
         .breadcrumb-link:hover {
-            color: #0056b3;
+            color: #0d47a1;
             text-decoration: underline;
         }
         
         .breadcrumb-separator {
             color: #adb5bd;
+        }
+        
+        #table-wrapper {
+            flex: 1;
+            overflow: auto;
+            background: white;
         }
         
         #data-table {
@@ -70,27 +78,27 @@
         }
         
         #data-table thead {
-            background: #e9ecef;
+            background: #f1f3f5;
             position: sticky;
             top: 0;
             z-index: 10;
         }
         
         #data-table th {
-            padding: 12px 15px;
+            padding: 10px 12px;
             text-align: left;
             font-weight: 600;
             color: #495057;
             border-bottom: 2px solid #dee2e6;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 12px;
+            white-space: nowrap;
         }
         
         #data-table td {
-            padding: 12px 15px;
+            padding: 8px 12px;
             border-bottom: 1px solid #f1f3f5;
             color: #212529;
+            font-size: 13px;
         }
         
         #data-table tbody tr {
@@ -103,22 +111,22 @@
         
         .drillable-cell {
             cursor: pointer;
-            color: #007bff;
+            color: #1f77b4;
             font-weight: 500;
             position: relative;
-            padding-left: 20px;
+            padding-left: 18px;
         }
         
         .drillable-cell:before {
             content: '▶';
             position: absolute;
-            left: 5px;
-            font-size: 10px;
+            left: 4px;
+            font-size: 9px;
             transition: transform 0.2s;
         }
         
         .drillable-cell:hover {
-            color: #0056b3;
+            color: #0d47a1;
             text-decoration: underline;
         }
         
@@ -127,14 +135,14 @@
         }
         
         #status {
-            padding: 15px;
+            padding: 20px;
             text-align: center;
             color: #6c757d;
             font-size: 14px;
         }
         
         .loading {
-            color: #007bff;
+            color: #1f77b4;
         }
         
         .error {
@@ -145,24 +153,9 @@
             margin: 15px;
         }
         
-        #table-wrapper {
-            max-height: calc(100vh - 100px);
-            overflow: auto;
-        }
-        
-        .reset-button {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.2s;
-        }
-        
-        .reset-button:hover {
-            background: #5a6268;
+        .number-cell {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
         }
     </style>
 </head>
@@ -181,80 +174,89 @@
     <script>
         'use strict';
 
-        let worksheet;
+        let dataTable;
         let hierarchyFields = [];
+        let measureFields = [];
         let currentLevel = 0;
         let drillPath = [];
-        let allData = [];
 
-        // Initialize the extension
-        tableau.extensions.initializeAsync().then(() => {
-            console.log('Extension initialized');
-            
-            // Get the worksheet
-            const dashboardName = tableau.extensions.dashboardContent.dashboard.name;
-            const worksheets = tableau.extensions.dashboardContent.dashboard.worksheets;
-            
-            // Use the first worksheet or let user configure
-            if (worksheets.length > 0) {
-                worksheet = worksheets[0];
-                loadData();
-            } else {
-                showError('No worksheets found in dashboard');
-            }
+        // Initialize the extension as a Viz Extension
+        tableau.extensions.initializeAsync({'configure': configure}).then(() => {
+            console.log('Viz Extension initialized');
+            loadData();
         }, (err) => {
             showError('Error initializing extension: ' + err.toString());
+            console.error('Init error:', err);
         });
+
+        function configure() {
+            // Configuration dialog if needed in future
+            console.log('Configure called');
+        }
 
         async function loadData() {
             try {
                 showStatus('Loading data...');
+                console.log('Starting data load...');
                 
-                // Get the data source
-                const dataTable = await worksheet.getSummaryDataAsync();
+                // Get the underlying data for viz extensions
+                const worksheetData = await tableau.extensions.worksheetContent.worksheet.getSummaryDataAsync();
                 
-                // Identify hierarchy fields
-                identifyHierarchies(dataTable.columns);
+                console.log('Data loaded:', worksheetData);
+                console.log('Columns:', worksheetData.columns);
+                console.log('Rows:', worksheetData.data.length);
+                
+                // Store the data
+                dataTable = worksheetData;
+                
+                // Identify hierarchies and measures
+                identifyFields(worksheetData.columns);
                 
                 if (hierarchyFields.length === 0) {
-                    showError('No hierarchies detected. Please add hierarchical fields to your view.');
+                    showError('No dimensional fields detected. Please add dimensions to your worksheet.');
                     return;
                 }
                 
                 console.log('Hierarchy fields:', hierarchyFields);
-                
-                // Store all data
-                allData = dataTable;
+                console.log('Measure fields:', measureFields);
                 
                 // Display data at current level
-                displayData(dataTable, currentLevel);
+                displayData(currentLevel);
                 
             } catch (err) {
                 showError('Error loading data: ' + err.toString());
+                console.error('Load error:', err);
             }
         }
 
-        function identifyHierarchies(columns) {
+        function identifyFields(columns) {
             hierarchyFields = [];
+            measureFields = [];
             
-            // Look for fields that form a hierarchy
-            // Tableau hierarchies often have similar naming patterns or are marked as hierarchical
-            // We'll detect them by looking for related fields or let all dimensions be drillable
-            
-            const dimensionFields = columns.filter(col => 
-                col.dataType === 'string' || 
-                col.dataType === 'date' ||
-                col.dataType === 'date-time'
-            );
-            
-            // For this implementation, we'll treat all dimensions as potential hierarchy levels
-            // ordered by their position in the view
-            hierarchyFields = dimensionFields.map(col => col.fieldName);
-            
-            console.log('Detected hierarchy fields:', hierarchyFields);
+            columns.forEach(col => {
+                console.log('Column:', col.fieldName, 'Type:', col.dataType);
+                
+                // Identify dimensions (text, dates, booleans)
+                if (col.dataType === 'string' || 
+                    col.dataType === 'date' || 
+                    col.dataType === 'date-time' ||
+                    col.dataType === 'bool') {
+                    hierarchyFields.push({
+                        name: col.fieldName,
+                        index: col.index
+                    });
+                }
+                // Identify measures (numbers)
+                else if (col.dataType === 'int' || col.dataType === 'float') {
+                    measureFields.push({
+                        name: col.fieldName,
+                        index: col.index
+                    });
+                }
+            });
         }
 
-        function displayData(dataTable, level) {
+        function displayData(level) {
             const tableWrapper = document.getElementById('table-wrapper');
             
             if (!hierarchyFields || hierarchyFields.length === 0) {
@@ -262,40 +264,32 @@
                 return;
             }
             
-            // Determine which fields to show
-            const fieldsToShow = hierarchyFields.slice(0, level + 1);
-            const measures = dataTable.columns.filter(col => 
-                col.dataType === 'int' || 
-                col.dataType === 'float'
-            );
-            
             // Filter data based on drill path
             let filteredData = dataTable.data;
             if (drillPath.length > 0) {
                 filteredData = dataTable.data.filter(row => {
                     return drillPath.every((pathItem, idx) => {
-                        const colIndex = dataTable.columns.findIndex(col => 
-                            col.fieldName === hierarchyFields[idx]
-                        );
-                        return row[colIndex].value === pathItem.value;
+                        const fieldIndex = hierarchyFields[idx].index;
+                        const cellValue = row[fieldIndex].value;
+                        return cellValue === pathItem.value;
                     });
                 });
             }
             
             // Aggregate data by current level
-            const aggregatedData = aggregateByLevel(filteredData, dataTable.columns, level);
+            const aggregatedData = aggregateByLevel(filteredData, level);
             
             // Create table
             let html = '<table id="data-table"><thead><tr>';
             
             // Add hierarchy column header
             if (level < hierarchyFields.length) {
-                html += `<th>${hierarchyFields[level]}</th>`;
+                html += `<th>${hierarchyFields[level].name}</th>`;
             }
             
             // Add measure headers
-            measures.forEach(measure => {
-                html += `<th>${measure.fieldName}</th>`;
+            measureFields.forEach(measure => {
+                html += `<th class="number-cell">${measure.name}</th>`;
             });
             
             html += '</tr></thead><tbody>';
@@ -309,12 +303,12 @@
                 const cellClass = isDrillable ? 'drillable-cell' : '';
                 const value = row.dimension;
                 
-                html += `<td class="${cellClass}" data-value="${value}" data-level="${level}">${value}</td>`;
+                html += `<td class="${cellClass}" data-value="${escapeHtml(value)}" data-level="${level}">${escapeHtml(value)}</td>`;
                 
                 // Add measures
-                measures.forEach(measure => {
-                    const measureValue = row.measures[measure.fieldName] || 0;
-                    html += `<td>${formatNumber(measureValue)}</td>`;
+                measureFields.forEach(measure => {
+                    const measureValue = row.measures[measure.name] || 0;
+                    html += `<td class="number-cell">${formatNumber(measureValue)}</td>`;
                 });
                 
                 html += '</tr>';
@@ -332,44 +326,39 @@
             updateBreadcrumb();
         }
 
-        function aggregateByLevel(data, columns, level) {
+        function aggregateByLevel(data, level) {
+            if (level >= hierarchyFields.length) return [];
+            
             const dimensionField = hierarchyFields[level];
-            const dimIndex = columns.findIndex(col => col.fieldName === dimensionField);
-            
-            if (dimIndex === -1) return [];
-            
-            const measures = columns.filter(col => 
-                col.dataType === 'int' || 
-                col.dataType === 'float'
-            );
-            
             const aggregated = {};
             
             data.forEach(row => {
-                const dimValue = row[dimIndex].value;
+                const dimValue = row[dimensionField.index].value;
+                const dimKey = String(dimValue);
                 
-                if (!aggregated[dimValue]) {
-                    aggregated[dimValue] = {
+                if (!aggregated[dimKey]) {
+                    aggregated[dimKey] = {
                         dimension: dimValue,
                         measures: {}
                     };
                     
-                    measures.forEach(measure => {
-                        aggregated[dimValue].measures[measure.fieldName] = 0;
+                    measureFields.forEach(measure => {
+                        aggregated[dimKey].measures[measure.name] = 0;
                     });
                 }
                 
                 // Sum measures
-                measures.forEach(measure => {
-                    const measureIndex = columns.findIndex(col => col.fieldName === measure.fieldName);
-                    const value = parseFloat(row[measureIndex].value) || 0;
-                    aggregated[dimValue].measures[measure.fieldName] += value;
+                measureFields.forEach(measure => {
+                    const value = parseFloat(row[measure.index].value) || 0;
+                    aggregated[dimKey].measures[measure.name] += value;
                 });
             });
             
-            return Object.values(aggregated).sort((a, b) => 
-                a.dimension.toString().localeCompare(b.dimension.toString())
-            );
+            return Object.values(aggregated).sort((a, b) => {
+                const aVal = String(a.dimension);
+                const bVal = String(b.dimension);
+                return aVal.localeCompare(bVal);
+            });
         }
 
         function handleDrillDown(event) {
@@ -377,9 +366,11 @@
             const value = cell.dataset.value;
             const level = parseInt(cell.dataset.level);
             
+            console.log('Drilling down:', value, 'at level', level);
+            
             // Add to drill path
             drillPath.push({
-                field: hierarchyFields[level],
+                field: hierarchyFields[level].name,
                 value: value,
                 level: level
             });
@@ -387,7 +378,7 @@
             currentLevel = level + 1;
             
             // Redisplay data
-            displayData(allData, currentLevel);
+            displayData(currentLevel);
         }
 
         function updateBreadcrumb() {
@@ -397,7 +388,7 @@
             drillPath.forEach((item, idx) => {
                 html += '<span class="breadcrumb-separator">›</span>';
                 html += `<span class="breadcrumb-item">`;
-                html += `<span class="breadcrumb-link" data-level="${idx}">${item.value}</span>`;
+                html += `<span class="breadcrumb-link" data-level="${idx}">${escapeHtml(String(item.value))}</span>`;
                 html += `</span>`;
             });
             
@@ -415,21 +406,32 @@
         }
 
         function resetDrill() {
+            console.log('Resetting drill');
             drillPath = [];
             currentLevel = 0;
-            displayData(allData, currentLevel);
+            displayData(currentLevel);
         }
 
         function drillToLevel(level) {
+            console.log('Drilling to level', level);
             drillPath = drillPath.slice(0, level + 1);
             currentLevel = level + 1;
-            displayData(allData, currentLevel);
+            displayData(currentLevel);
         }
 
         function formatNumber(num) {
             if (num === null || num === undefined) return '-';
             if (Number.isInteger(num)) return num.toLocaleString();
-            return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+            return num.toLocaleString(undefined, { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2 
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function showStatus(message) {
