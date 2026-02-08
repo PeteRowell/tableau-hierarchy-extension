@@ -6,7 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Hierarchy Tree Drill Down</title>
     
-    <script src="https://extension.tableau.com/javascripts/extensions-api/tableau.extensions.1.latest.min.js"></script>
+    <script>
+        // Try multiple CDN sources - Tableau may block some when extension loads in iframe
+        var sources = [
+            'https://cdn.online.tableau.com/extensions/1.12.0/tableau.extensions.1.12.0.min.js',
+            'https://extension.tableau.com/javascripts/extensions-api/tableau.extensions.1.latest.min.js',
+            'https://cdn.jsdelivr.net/gh/tableau/extensions-api@1.12.0/lib/tableau.extensions.1.12.0.min.js'
+        ];
+        function loadScript(i) {
+            if (i >= sources.length) return;
+            var s = document.createElement('script');
+            s.src = sources[i];
+            s.onload = function() { if (typeof tableau !== 'undefined') document.dispatchEvent(new Event('tableau-loaded')); };
+            s.onerror = function() { loadScript(i + 1); };
+            document.head.appendChild(s);
+        }
+        loadScript(0);
+    </script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,9 +69,11 @@
 
         function initDone() { clearTimeout(initTimeout); }
 
-        if (typeof tableau === 'undefined') {
-            showError('Tableau Extensions API failed to load.');
-        } else {
+        function runInit() {
+            if (typeof tableau === 'undefined') {
+                showError('Tableau Extensions API failed to load from all CDN sources.');
+                return;
+            }
             tableau.extensions.initializeAsync().then(() => {
                 initDone();
                 if (!tableau.extensions.worksheetContent) {
@@ -68,6 +86,13 @@
                 showError('Error initializing: ' + (err && err.message ? err.message : String(err)));
             });
         }
+
+        document.addEventListener('tableau-loaded', runInit);
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof tableau !== 'undefined') runInit();
+            else setTimeout(function() { if (typeof tableau !== 'undefined') runInit(); }, 500);
+        });
+        setTimeout(function() { if (typeof tableau === 'undefined') runInit(); }, 5000);
 
         async function loadData() {
             try {
