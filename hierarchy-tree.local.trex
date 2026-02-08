@@ -3,11 +3,11 @@
   <dashboard-extension id="com.tableau.hierarchy-tree" extension-version="1.0.0">
     <default-locale>en_US</default-locale>
     <name resource-id="name"/>
-    <description>Drill down through Tableau hierarchy dimensions. Tree-style expand/collapse with clear selection display. Does not filter other dashboards.</description>
+    <description>Drill down through Tableau hierarchy dimensions. Tree-style expand/collapse with clear selection display.</description>
     <author name="Tableau Hierarchy Extension" email="" organization="" website=""/>
     <min-api-version>1.4</min-api-version>
     <source-location>
-      <url>https://YOUR_USERNAME.github.io/tableau-hierarchy-extension/</url>
+      <url>http://localhost:8080/</url>
     </source-location>
     <context-menu>
       <configure-context-menu-item/>
@@ -15,7 +15,7 @@
   </dashboard-extension>
   <resources>
     <resource id="name">
-      <text locale="en_US">Hierarchy Drill Down</text>
+      <text locale="en_US">Hierarchy Drill Down (Local)</text>
     </resource>
   </resources>
 </manifest>
