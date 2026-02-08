@@ -6,147 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Hierarchy Tree Drill Down</title>
     
-    <script src="https://cdn.online.tableau.com/extensions/1.10.0/tableau.extensions.1.10.0.min.js"></script>
+    <script src="https://cdn.online.tableau.com/extensions/1.12.0/tableau.extensions.1.12.0.min.js"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: white;
-            overflow: hidden;
-        }
-        
-        #container {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: white;
-        }
-        
-        #table-wrapper {
-            flex: 1;
-            overflow: auto;
-            background: white;
-        }
-        
-        #data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        #data-table thead {
-            background: #f1f3f5;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        
-        #data-table th {
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-        
-        #data-table th.measure-header {
-            text-align: right;
-        }
-        
-        #data-table td {
-            padding: 8px 12px;
-            border-bottom: 1px solid #f1f3f5;
-            color: #212529;
-            font-size: 13px;
-        }
-        
-        #data-table tbody tr {
-            transition: background-color 0.15s;
-        }
-        
-        #data-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .dimension-cell {
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-        
-        .expandable {
-            color: #1f77b4;
-            font-weight: 500;
-        }
-        
-        .expandable:hover {
-            color: #0d47a1;
-            background: #e3f2fd;
-        }
-        
-        .expand-icon {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            margin-right: 4px;
-            cursor: pointer;
-            font-size: 10px;
-            transition: transform 0.2s;
-            vertical-align: middle;
-        }
-        
-        .expand-icon.expanded {
-            transform: rotate(90deg);
-        }
-        
-        .indent {
-            display: inline-block;
-        }
-        
-        .measure-cell {
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-            cursor: pointer;
-        }
-        
-        .measure-cell.expandable:hover {
-            background: #e3f2fd;
-        }
-        
-        .child-row {
-            display: none;
-        }
-        
-        .child-row.visible {
-            display: table-row;
-        }
-        
-        #status {
-            padding: 20px;
-            text-align: center;
-            color: #6c757d;
-            font-size: 14px;
-        }
-        
-        .loading {
-            color: #1f77b4;
-        }
-        
-        .error {
-            color: #dc3545;
-            background: #f8d7da;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 15px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; overflow: hidden; }
+        #container { width: 100%; height: 100vh; display: flex; flex-direction: column; background: white; }
+        #table-wrapper { flex: 1; overflow: auto; background: white; }
+        #data-table { width: 100%; border-collapse: collapse; }
+        #data-table thead { background: #f1f3f5; position: sticky; top: 0; z-index: 10; }
+        #data-table th { padding: 10px 12px; text-align: left; font-weight: 600; color: #495057; border-bottom: 2px solid #dee2e6; font-size: 12px; white-space: nowrap; }
+        #data-table th.measure-header { text-align: right; }
+        #data-table td { padding: 8px 12px; border-bottom: 1px solid #f1f3f5; color: #212529; font-size: 13px; }
+        #data-table tbody tr:hover { background: #f8f9fa; }
+        .dimension-cell { cursor: pointer; user-select: none; white-space: nowrap; }
+        .expandable { color: #1f77b4; font-weight: 500; }
+        .expandable:hover { background: #e3f2fd; }
+        .expand-icon { display: inline-block; width: 16px; margin-right: 4px; cursor: pointer; font-size: 10px; vertical-align: middle; }
+        .measure-cell { text-align: right; font-variant-numeric: tabular-nums; cursor: pointer; }
+        .child-row { display: none; }
+        .child-row.visible { display: table-row; }
+        #status { padding: 20px; text-align: center; color: #6c757d; font-size: 14px; }
+        .loading { color: #1f77b4; }
+        .error { color: #dc3545; background: #f8d7da; padding: 15px; border-radius: 4px; margin: 15px; }
     </style>
 </head>
 <body>
@@ -165,199 +47,103 @@
         let treeData = [];
         let expandedNodes = new Set();
 
-        tableau.extensions.initializeAsync({'configure': configure}).then(() => {
-            console.log('Viz Extension initialized');
+        tableau.extensions.initializeAsync().then(() => {
             loadData();
         }, (err) => {
-            showError('Error initializing extension: ' + err.toString());
-            console.error('Init error:', err);
+            showError('Error initializing: ' + err.toString());
         });
-
-        function configure() {
-            console.log('Configure called');
-        }
 
         async function loadData() {
             try {
                 showStatus('Loading data...');
-                console.log('Starting data load...');
-                
-                const worksheetData = await tableau.extensions.worksheetContent.worksheet.getSummaryDataAsync();
-                
-                console.log('Data loaded:', worksheetData);
-                console.log('Columns:', worksheetData.columns);
-                console.log('Rows:', worksheetData.data.length);
-                
+                const worksheet = tableau.extensions.worksheetContent.worksheet;
+                let worksheetData;
+                if (worksheet.getSummaryDataReaderAsync) {
+                    const reader = await worksheet.getSummaryDataReaderAsync();
+                    try { worksheetData = await reader.getAllPagesAsync(); }
+                    finally { await reader.releaseAsync(); }
+                } else {
+                    worksheetData = await worksheet.getSummaryDataAsync();
+                }
                 dataTable = worksheetData;
-                
                 identifyFields(worksheetData.columns);
-                
                 if (hierarchyFields.length === 0) {
-                    showError('No dimensional fields detected. Please add dimensions to your worksheet.');
+                    showError('No dimensional fields detected. Add dimensions to your worksheet.');
                     return;
                 }
-                
-                console.log('Hierarchy fields:', hierarchyFields);
-                console.log('Measure fields:', measureFields);
-                
                 buildTree();
                 renderTable();
-                
             } catch (err) {
                 showError('Error loading data: ' + err.toString());
-                console.error('Load error:', err);
             }
         }
 
         function identifyFields(columns) {
             hierarchyFields = [];
             measureFields = [];
-            
             columns.forEach(col => {
-                console.log('Column:', col.fieldName, 'Type:', col.dataType);
-                
-                if (col.dataType === 'string' || 
-                    col.dataType === 'date' || 
-                    col.dataType === 'date-time' ||
-                    col.dataType === 'bool') {
-                    hierarchyFields.push({
-                        name: col.fieldName,
-                        index: col.index
-                    });
-                }
-                else if (col.dataType === 'int' || col.dataType === 'float') {
-                    measureFields.push({
-                        name: col.fieldName,
-                        index: col.index
-                    });
+                if (['string', 'date', 'date-time', 'bool'].includes(col.dataType)) {
+                    hierarchyFields.push({ name: col.fieldName, index: col.index });
+                } else if (['int', 'float'].includes(col.dataType)) {
+                    measureFields.push({ name: col.fieldName, index: col.index });
                 }
             });
         }
 
         function buildTree() {
             treeData = [];
-            
             if (hierarchyFields.length === 0) return;
-            
-            // Build hierarchical structure
             const rootMap = new Map();
-            
             dataTable.data.forEach(row => {
                 let currentMap = rootMap;
                 let path = '';
-                
                 hierarchyFields.forEach((field, level) => {
                     const value = row[field.index].value;
                     const key = String(value);
                     path += (path ? '|' : '') + key;
-                    
                     if (!currentMap.has(key)) {
-                        const node = {
-                            value: value,
-                            displayValue: String(value),
-                            level: level,
-                            path: path,
-                            children: new Map(),
-                            measures: {},
-                            hasChildren: level < hierarchyFields.length - 1
-                        };
-                        
-                        measureFields.forEach(measure => {
-                            node.measures[measure.name] = 0;
-                        });
-                        
+                        const node = { value, displayValue: String(value), level, path, children: new Map(), measures: {}, hasChildren: level < hierarchyFields.length - 1 };
+                        measureFields.forEach(m => { node.measures[m.name] = 0; });
                         currentMap.set(key, node);
                     }
-                    
                     const node = currentMap.get(key);
-                    
-                    // Add measure values
-                    measureFields.forEach(measure => {
-                        const val = parseFloat(row[measure.index].value) || 0;
-                        node.measures[measure.name] += val;
-                    });
-                    
+                    measureFields.forEach(m => { node.measures[m.name] += parseFloat(row[m.index].value) || 0; });
                     currentMap = node.children;
                 });
             });
-            
-            // Convert to array
             function mapToArray(map) {
                 const arr = [];
-                map.forEach((node, key) => {
-                    const children = mapToArray(node.children);
-                    arr.push({
-                        ...node,
-                        children: children
-                    });
-                });
-                
-                arr.sort((a, b) => {
-                    return String(a.value).localeCompare(String(b.value));
-                });
-                
-                return arr;
+                map.forEach((node, key) => arr.push({ ...node, children: mapToArray(node.children) }));
+                return arr.sort((a, b) => String(a.value).localeCompare(String(b.value)));
             }
-            
             treeData = mapToArray(rootMap);
-            console.log('Tree built:', treeData);
         }
 
         function renderTable() {
             const tableWrapper = document.getElementById('table-wrapper');
-            
-            let html = '<table id="data-table"><thead><tr>';
-            html += '<th>Dimension</th>';
-            
-            measureFields.forEach(measure => {
-                html += `<th class="measure-header">${escapeHtml(measure.name)}</th>`;
-            });
-            
+            let html = '<table id="data-table"><thead><tr><th>Dimension</th>';
+            measureFields.forEach(m => html += `<th class="measure-header">${escapeHtml(m.name)}</th>`);
             html += '</tr></thead><tbody>';
-            
             function renderNode(node, parentPath = '') {
                 const isExpanded = expandedNodes.has(node.path);
                 const hasChildren = node.children && node.children.length > 0;
                 const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(node.level);
-                
-                let expandIcon = '';
-                if (hasChildren) {
-                    expandIcon = isExpanded ? '▼' : '▶';
-                }
-                
                 const rowClass = parentPath ? 'child-row' + (shouldShowRow(node.path) ? ' visible' : '') : '';
                 const cellClass = hasChildren ? 'dimension-cell expandable' : 'dimension-cell';
-                
+                const icon = hasChildren ? (isExpanded ? '▼' : '▶') : '';
                 html += `<tr class="${rowClass}" data-path="${node.path}">`;
-                html += `<td class="${cellClass}" data-path="${node.path}" data-has-children="${hasChildren}">`;
-                html += indent;
-                if (expandIcon) {
-                    html += `<span class="expand-icon ${isExpanded ? 'expanded' : ''}">${expandIcon}</span>`;
-                }
-                html += escapeHtml(node.displayValue);
-                html += '</td>';
-                
-                measureFields.forEach(measure => {
-                    const value = node.measures[measure.name] || 0;
-                    const measureClass = hasChildren ? 'measure-cell expandable' : 'measure-cell';
-                    html += `<td class="${measureClass}" data-path="${node.path}" data-has-children="${hasChildren}">${formatNumber(value)}</td>`;
+                html += `<td class="${cellClass}" data-path="${node.path}" data-has-children="${hasChildren}">${indent}${icon ? '<span class="expand-icon">' + icon + '</span>' : ''}${escapeHtml(node.displayValue)}</td>`;
+                measureFields.forEach(m => {
+                    const val = node.measures[m.name] || 0;
+                    const mc = hasChildren ? 'measure-cell expandable' : 'measure-cell';
+                    html += `<td class="${mc}" data-path="${node.path}" data-has-children="${hasChildren}">${formatNumber(val)}</td>`;
                 });
-                
                 html += '</tr>';
-                
-                if (hasChildren && node.children) {
-                    node.children.forEach(child => {
-                        renderNode(child, node.path);
-                    });
-                }
+                if (hasChildren && node.children) node.children.forEach(c => renderNode(c, node.path));
             }
-            
             treeData.forEach(node => renderNode(node));
-            
             html += '</tbody></table>';
             tableWrapper.innerHTML = html;
-            
-            // Add click handlers
             document.querySelectorAll('.dimension-cell, .measure-cell').forEach(cell => {
                 cell.addEventListener('click', handleCellClick);
             });
@@ -366,10 +152,7 @@
         function shouldShowRow(path) {
             const parts = path.split('|');
             for (let i = 1; i < parts.length; i++) {
-                const parentPath = parts.slice(0, i).join('|');
-                if (!expandedNodes.has(parentPath)) {
-                    return false;
-                }
+                if (!expandedNodes.has(parts.slice(0, i).join('|'))) return false;
             }
             return true;
         }
@@ -377,37 +160,21 @@
         function handleCellClick(event) {
             const cell = event.currentTarget;
             const path = cell.dataset.path;
-            const hasChildren = cell.dataset.hasChildren === 'true';
-            
-            if (!hasChildren) return;
-            
+            if (cell.dataset.hasChildren !== 'true') return;
             if (expandedNodes.has(path)) {
                 expandedNodes.delete(path);
-                collapseChildren(path);
+                const toRemove = [];
+                expandedNodes.forEach(p => { if (p.startsWith(path + '|')) toRemove.push(p); });
+                toRemove.forEach(p => expandedNodes.delete(p));
             } else {
                 expandedNodes.add(path);
             }
-            
             renderTable();
         }
 
-        function collapseChildren(path) {
-            const toRemove = [];
-            expandedNodes.forEach(expandedPath => {
-                if (expandedPath.startsWith(path + '|')) {
-                    toRemove.push(expandedPath);
-                }
-            });
-            toRemove.forEach(p => expandedNodes.delete(p));
-        }
-
         function formatNumber(num) {
-            if (num === null || num === undefined) return '-';
-            if (Number.isInteger(num)) return num.toLocaleString();
-            return num.toLocaleString(undefined, { 
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2 
-            });
+            if (num == null) return '-';
+            return Number.isInteger(num) ? num.toLocaleString() : num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         }
 
         function escapeHtml(text) {
@@ -416,15 +183,12 @@
             return div.innerHTML;
         }
 
-        function showStatus(message) {
-            const tableWrapper = document.getElementById('table-wrapper');
-            tableWrapper.innerHTML = `<div id="status" class="loading">${message}</div>`;
+        function showStatus(msg) {
+            document.getElementById('table-wrapper').innerHTML = `<div id="status" class="loading">${msg}</div>`;
         }
 
-        function showError(message) {
-            const tableWrapper = document.getElementById('table-wrapper');
-            tableWrapper.innerHTML = `<div class="error">${message}</div>`;
-            console.error(message);
+        function showError(msg) {
+            document.getElementById('table-wrapper').innerHTML = `<div class="error">${msg}</div>`;
         }
     </script>
 </body>
