@@ -99,34 +99,43 @@
                 showStatus('Loading data...');
                 const worksheet = tableau.extensions.worksheetContent.worksheet;
                 let worksheetData;
-                if (worksheet.getSummaryDataReaderAsync) {
-                    const reader = await worksheet.getSummaryDataReaderAsync();
-                    try { worksheetData = await reader.getAllPagesAsync(); }
-                    finally { await reader.releaseAsync(); }
-                } else {
-                    worksheetData = await worksheet.getSummaryDataAsync();
+                worksheetData = await worksheet.getSummaryDataAsync();
+                if (!worksheetData || !worksheetData.columns || !worksheetData.data) {
+                    showError('No data returned. Ensure Category (or other dimensions) and at least one measure are on the Marks card Detail shelf.');
+                    return;
                 }
                 dataTable = worksheetData;
                 identifyFields(worksheetData.columns);
                 if (hierarchyFields.length === 0) {
-                    showError('No dimensional fields detected. Add dimensions to your worksheet.');
+                    showError('No dimensional fields detected. Add dimensions (e.g. Category) to the Marks card Detail shelf.');
+                    return;
+                }
+                if (worksheetData.data.length === 0) {
+                    showError('Worksheet has no data rows. Check your data source and filters.');
                     return;
                 }
                 buildTree();
                 renderTable();
             } catch (err) {
-                showError('Error loading data: ' + err.toString());
+                var msg = err.toString();
+                if (msg.indexOf('invalid value for range') !== -1) {
+                    msg = 'Data loading error. Try adding your hierarchy dimension (e.g. Category) to the Rows shelf as well as Detail.';
+                }
+                showError('Error loading data: ' + msg);
             }
         }
 
         function identifyFields(columns) {
             hierarchyFields = [];
             measureFields = [];
+            const excludeFromHierarchy = /year|month|day|quarter|date|week|order date|ship date/i;
             columns.forEach(col => {
-                if (['string', 'date', 'date-time', 'bool'].includes(col.dataType)) {
-                    hierarchyFields.push({ name: col.fieldName, index: col.index });
-                } else if (['int', 'float'].includes(col.dataType)) {
+                var isMeasure = ['int', 'float'].includes(col.dataType);
+                var isDateLike = ['date', 'date-time'].includes(col.dataType) || excludeFromHierarchy.test(col.fieldName);
+                if (isMeasure) {
                     measureFields.push({ name: col.fieldName, index: col.index });
+                } else if (!isDateLike && ['string', 'bool'].includes(col.dataType)) {
+                    hierarchyFields.push({ name: col.fieldName, index: col.index });
                 }
             });
         }
@@ -139,11 +148,12 @@
                 let currentMap = rootMap;
                 let path = '';
                 hierarchyFields.forEach((field, level) => {
-                    const value = row[field.index].value;
+                    const cell = row[field.index];
+                    const value = cell && (cell.formattedValue !== undefined ? cell.formattedValue : cell.value);
                     const key = String(value);
                     path += (path ? '|' : '') + key;
                     if (!currentMap.has(key)) {
-                        const node = { value, displayValue: String(value), level, path, children: new Map(), measures: {}, hasChildren: level < hierarchyFields.length - 1 };
+                        const node = { value, displayValue: String(value || ''), level, path, children: new Map(), measures: {}, hasChildren: level < hierarchyFields.length - 1 };
                         measureFields.forEach(m => { node.measures[m.name] = 0; });
                         currentMap.set(key, node);
                     }

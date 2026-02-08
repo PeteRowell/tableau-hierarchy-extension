@@ -12,8 +12,9 @@ If you have an older Tableau version, worksheet extensions will not work. Use a 
 
 1. On a worksheet, open the **Marks** card dropdown.
 2. Select **Hierarchy Tree** (or your extension name).
-3. Drag your hierarchy dimension(s) to **Detail** (e.g. Category, or Country → State → City).
-4. Drag your measure(s) to **Detail** (e.g. SUM(Profit)).
+3. **Drag your Tableau hierarchy to Rows** (e.g. drag the "Product" hierarchy—Category, Sub-Category, Product Name). The extension uses the hierarchy levels from the worksheet.
+4. **Drag your measure(s) to Detail** (e.g. SUM(Sales)). Measures appear as columns and do not change.
+5. **Date fields are excluded** from the tree—only the hierarchy dimensions (Category, Sub-Category, Product Name, etc.) appear for drill-down.
 
 ## If it stays on "Initializing extension..."
 
