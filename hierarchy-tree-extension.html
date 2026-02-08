@@ -47,10 +47,10 @@
         let treeData = [];
         let expandedNodes = new Set();
 
-        // Timeout if init never resolves (e.g. unsupported Tableau version)
+        // Timeout if init never resolves - could be URL, script load, or Tableau connection
         const initTimeout = setTimeout(() => {
-            showError('Initialization timed out. Worksheet extensions require Tableau 2024.2 or later. If you have an older version, use the dashboard extension instead.');
-        }, 8000);
+            showError('Initialization timed out. Check: (1) Extension URL in trex matches your GitHub Pages URL exactly, (2) hierarchy-tree-extension.html is at that URL, (3) GitHub Pages is enabled. Try opening the URL in a browser to verify.');
+        }, 15000);
 
         function initDone() {
             clearTimeout(initTimeout);

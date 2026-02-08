@@ -22,4 +22,9 @@ If you have an older Tableau version, worksheet extensions will not work. Use a 
 
 ## Hosting
 
-Host these files on GitHub Pages or any HTTPS server. Update the URL in `hierarchy-tree.trex` to match your hosting URL.
+Host these files on GitHub Pages or any HTTPS server. 
+
+**Important:** The URL in `hierarchy-tree.trex` must match your GitHub Pages URL exactly:
+- Username is case-sensitive (e.g. `PeteRowell` not `peterowell`)
+- Format: `https://YOUR_USERNAME.github.io/tableau-hierarchy-extension/hierarchy-tree-extension.html`
+- Verify: open that URL in a browser — you should see the extension page
