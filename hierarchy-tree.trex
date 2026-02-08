@@ -1,23 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
-  <dashboard-extension id="com.tableau.hierarchy-tree" extension-version="1.0.0">
+  <worksheet-extension id="com.tableau.extension.hierarchy-tree" extension-version="1.0.0">
     <default-locale>en_US</default-locale>
     <name resource-id="name"/>
-    <description>Drill down through Tableau hierarchy dimensions. Tree-style expand/collapse with clear selection display. Does not filter other dashboards.</description>
-    <author name="Tableau Hierarchy Extension" website="https://PeteRowell.github.io/tableau-hierarchy-extension/"/>
+    <description>Hierarchy Tree Drill Down Extension</description>
+    <author name="Custom Extension" email="extension@example.com" organization="Your Org" website="https://www.example.com"/>
     <min-api-version>1.4</min-api-version>
     <source-location>
-      <url>https://PeteRowell.github.io/tableau-hierarchy-extension/</url>
+      <url>https://peterowell.github.io/tableau-hierarchy-extension/hierarchy-tree-extension.html</url>
     </source-location>
-    <icon>iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAPklEQVQ4T2NkYGD4z0ABYBzVMKoBNA0DRkbG/xSYwcgwqgGkBjAyMjJQbMSoBlIDGBkZGSg2YlQDqQEAQn0MDJkzLuAAAAAASUVORK5CYII=</icon>
-    <permissions/>
-    <context-menu>
-      <configure-context-menu-item/>
-    </context-menu>
-  </dashboard-extension>
+    <icon></icon>
+  </worksheet-extension>
   <resources>
     <resource id="name">
-      <text locale="en_US">Hierarchy Drill Down</text>
+      <text locale="en_US">Hierarchy Tree Drill Down</text>
     </resource>
   </resources>
 </manifest>
