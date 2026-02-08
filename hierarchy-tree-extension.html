@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Hierarchy Tree Drill Down</title>
     
-    <script src="https://cdn.online.tableau.com/extensions/1.12.0/tableau.extensions.1.12.0.min.js"></script>
+    <script src="https://extension.tableau.com/javascripts/extensions-api/tableau.extensions.1.latest.min.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -47,11 +47,30 @@
         let treeData = [];
         let expandedNodes = new Set();
 
-        tableau.extensions.initializeAsync().then(() => {
-            loadData();
-        }, (err) => {
-            showError('Error initializing: ' + err.toString());
-        });
+        // Timeout if init never resolves (e.g. unsupported Tableau version)
+        const initTimeout = setTimeout(() => {
+            showError('Initialization timed out. Worksheet extensions require Tableau 2024.2 or later. If you have an older version, use the dashboard extension instead.');
+        }, 8000);
+
+        function initDone() {
+            clearTimeout(initTimeout);
+        }
+
+        if (typeof tableau === 'undefined') {
+            showError('Tableau Extensions API failed to load. Check your connection and that the extension URL is correct.');
+        } else {
+            tableau.extensions.initializeAsync().then(() => {
+                initDone();
+                if (!tableau.extensions.worksheetContent) {
+                    showError('Worksheet extensions require Tableau 2024.2 or later. Please upgrade Tableau, or use the dashboard extension version.');
+                    return;
+                }
+                loadData();
+            }, (err) => {
+                initDone();
+                showError('Error initializing: ' + (err && err.message ? err.message : String(err)));
+            });
+        }
 
         async function loadData() {
             try {
