@@ -4,11 +4,12 @@
     <default-locale>en_US</default-locale>
     <name resource-id="name"/>
     <description>Drill down through Tableau hierarchy dimensions. Tree-style expand/collapse with clear selection display. Does not filter other dashboards.</description>
-    <author name="Tableau Hierarchy Extension" email="" organization="" website=""/>
+    <author name="Tableau Hierarchy Extension" email="" organization="" website="https://PeteRowell.github.io/tableau-hierarchy-extension/"/>
     <min-api-version>1.4</min-api-version>
     <source-location>
-      <url>https://YOUR_USERNAME.github.io/tableau-hierarchy-extension/</url>
+      <url>https://PeteRowell.github.io/tableau-hierarchy-extension/</url>
     </source-location>
+    <icon>iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAPklEQVQ4T2NkYGD4z0ABYBzVMKoBNA0DRkbG/xSYwcgwqgGkBjAyMjJQbMSoBlIDGBkZGSg2YlQDqQEAQn0MDJkzLuAAAAAASUVORK5CYII=</icon>
     <context-menu>
       <configure-context-menu-item/>
     </context-menu>
