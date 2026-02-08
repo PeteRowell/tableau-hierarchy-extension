@@ -7,7 +7,7 @@
     <author name="Custom Extension" email="extension@example.com" organization="Your Org" website="https://www.example.com"/>
     <min-api-version>1.12</min-api-version>
     <source-location>
-      <url>https://PeteRowell.github.io/tableau-hierarchy-extension/hierarchy-tree-extension.html</url>
+      <url>https://peterowell.github.io/tableau-hierarchy-extension/</url>
     </source-location>
     <icon></icon>
   </worksheet-extension>
